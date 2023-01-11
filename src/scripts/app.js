@@ -3,6 +3,7 @@ import SideBar from "./sidebar";
 import StatusBar from "./statusbar";
 import Cover from "./cover";
 import PageContent from "./pagecontent";
+import ScrollTool from "./scrolltool";
 import "element-scroll-polyfill";
 
 export default class InteractiveBook extends H5P.EventDispatcher {
@@ -786,6 +787,25 @@ export default class InteractiveBook extends H5P.EventDispatcher {
       // Some content types may send xAPI events when they are initialized,
       // so check that chapter is initialized before setting any section change
       const isInitialized = self.chapters.length;
+      const chapter = self.chapters[self.activeChapter];
+      if (event.getVerb() === "completed") {
+        if (!chapter.isSummary) {
+          if (
+            chapter.instance.getScore() === chapter.instance.getMaxScore() &&
+            chapter.instance.getMaxScore() !== 0
+          ) {
+            if (
+              chapter.hasAutoAdvanced !== "undefined" &&
+              !chapter.hasAutoAdvanced
+            ) {
+              //auto advance to next chapter
+              self.autoAdvance("next", true);
+              ScrollTool.scrollToTop();
+              chapter.hasAutoAdvanced = true;
+            }
+          }
+        }
+      }
 
       if (self !== this && isActionVerb && isInitialized) {
         self.setSectionStatusByID(
@@ -794,6 +814,31 @@ export default class InteractiveBook extends H5P.EventDispatcher {
         );
       }
     });
+
+    this.autoAdvance = (direction, toTop) => {
+      const eventInput = {
+        h5pbookid: this.contentId,
+      };
+      if (toTop) {
+        eventInput.section = "top";
+      }
+
+      if (direction === "next") {
+        if (this.activeChapter + 1 < this.chapters.length) {
+          eventInput.chapter = `h5p-interactive-book-chapter-${
+            this.chapters[this.activeChapter + 1].instance.subContentId
+          }`;
+        } else if (
+          this.hasSummary() &&
+          this.activeChapter + 1 === this.chapters.length
+        ) {
+          this.trigger("viewSummary", eventInput);
+        }
+      }
+      if (eventInput.chapter) {
+        this.trigger("newChapter", eventInput);
+      }
+    };
 
     /**
      * Redirect chapter.
