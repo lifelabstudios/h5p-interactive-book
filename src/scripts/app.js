@@ -32,6 +32,7 @@ export default class InteractiveBook extends H5P.EventDispatcher {
     this.smallSurface = "h5p-interactive-book-small";
     this.mediumSurface = "h5p-interactive-book-medium";
     this.largeSurface = "h5p-interactive-book-large";
+    this.triggeredXAPICompleted = false;
 
     this.chapters = [];
 
@@ -788,7 +789,7 @@ export default class InteractiveBook extends H5P.EventDispatcher {
       // so check that chapter is initialized before setting any section change
       const isInitialized = self.chapters.length;
       const chapter = self.chapters[self.activeChapter];
-      if (event.getVerb() === "completed") {
+      if (isInitialized && event.getVerb() === "completed") {
         if (!chapter.isSummary) {
           if (
             chapter.instance.getScore() === chapter.instance.getMaxScore() &&
@@ -837,6 +838,12 @@ export default class InteractiveBook extends H5P.EventDispatcher {
       }
       if (eventInput.chapter) {
         this.trigger("newChapter", eventInput);
+        // Check here for a 100% score, and fire completed if everything is done
+        const score = this.getScore();
+        const maxScore = this.getMaxScore();
+        if (score / maxScore === 1) {
+          this.triggerXAPIScored(score, maxScore, "completed");
+        }
       }
     };
 

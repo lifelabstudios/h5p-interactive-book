@@ -327,6 +327,10 @@ class PageContent extends H5P.EventDispatcher {
         }, 1000);
       }
 
+      if(chapterIndex == -1) {
+        return 0;
+      }
+
       return chapterIndex;
     }
 
