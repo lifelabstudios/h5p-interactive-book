@@ -240,17 +240,21 @@ export default class InteractiveBook extends H5P.EventDispatcher {
      * @return {object} Current state.
      */
     this.getCurrentState = () => {
-      // Get relevant state information from non-summary chapters
       const chapters = this.chapters
         .filter((chapter) => !chapter.isSummary)
-        .map((chapter) => ({
+        .map((chapter, index) => ({
           completed: chapter.completed,
           maxTasks: chapter.maxTasks,
           tasksLeft: chapter.tasksLeft,
           sections: chapter.sections.map((section) => ({
             taskDone: section.taskDone,
           })),
-          state: chapter.instance.getCurrentState(),
+          /*
+             if chapter is not initialized, return previous state instead, this is to avoid losing progress
+             since some h5p types rely on information in the DOM to report their correct state
+             this isn't strictly necessary but it's a nice to have
+          */
+          state: chapter.isInitialized ? chapter.instance.getCurrentState() : this.previousState.chapters[index].state,
         }));
 
       return {
@@ -785,6 +789,16 @@ export default class InteractiveBook extends H5P.EventDispatcher {
     H5P.externalDispatcher.on("xAPI", function (event) {
       const actionVerbs = ["answered", "completed", "interacted", "attempted"];
       const isActionVerb = actionVerbs.indexOf(event.getVerb()) > -1;
+
+      const subContentId = event.data.statement.object.definition.extensions[
+        'http://h5p.org/x-api/h5p-subContentId'
+      ];
+      
+      // check if the event is from a sub content type, this avoids a recursive loop
+      if (!subContentId) {
+        return;
+      }
+
       // Some content types may send xAPI events when they are initialized,
       // so check that chapter is initialized before setting any section change
       const isInitialized = self.chapters.length;
