@@ -254,7 +254,7 @@ export default class InteractiveBook extends H5P.EventDispatcher {
              since some h5p types rely on information in the DOM to report their correct state
              this isn't strictly necessary but it's a nice to have
           */
-          state: chapter.isInitialized ? chapter.instance.getCurrentState() : this.previousState.chapters[index].state,
+          state: chapter.isInitialized ? chapter.instance.getCurrentState() : this.previousState?.chapters?.[index]?.state,
         }));
 
       return {
